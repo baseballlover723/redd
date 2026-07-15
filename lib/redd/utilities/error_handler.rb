@@ -29,7 +29,7 @@ module Redd
         # If there wasn't an status code error and we're allowed to look into the response, parse
         # it and check for errors.
         # TODO: deal with errors of type { fields:, explanation:, message:, reason: }
-        rate_limit_error(res) || other_api_error(res)
+        rate_limit_error(res) || fake_rate_limit_error(res) || other_api_error(res)
       end
 
       private
@@ -55,6 +55,14 @@ module Redd
 
       def rate_limit_error(res)
         return nil unless res.body.is_a?(Hash) && res.body[:json] && res.body[:json][:ratelimit]
+        Errors::RateLimitError.new(res)
+      end
+
+      # double posting rate limit issue
+      def fake_rate_limit_error(res)
+        return nil unless res.body.is_a?(Hash) && res.body[:json] && res.body[:json][:errors] &&
+                          !res.body[:json][:errors].empty? && res.body[:json][:errors].find {|error| error[0] == 'RATELIMIT'}
+        res.body[:json][:ratelimit] = 5 # fake ratelimit hit to avoid the double post error
         Errors::RateLimitError.new(res)
       end
 

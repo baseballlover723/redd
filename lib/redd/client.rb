@@ -12,6 +12,7 @@ module Redd
     # Holds a returned HTTP response.
     Response = Struct.new(:code, :headers, :raw_body) do
       def body
+        return nil if raw_body.nil? || raw_body.empty?
         @body ||= JSON.parse(raw_body, symbolize_names: true)
       end
     end
